@@ -145,6 +145,7 @@ games = {
 ########################################################################################################################
 
 import random
+from multiprocessing.pool import ThreadPool
 import matplotlib.pyplot as plot
 import numpy as np
 import os
@@ -862,6 +863,36 @@ def plot_results(user_input):
 ########################################################################################################################
 
 
+def run_trial(g1, user_input):
+  for j in range(user_input.num_sides):
+    team_name = "team_" + str(j)
+    team_name = Team(user_input.game, user_input.teams[j]["team_name"], j,
+                     user_input.teams[j]["skill"] / 10,
+                     user_input.teams[j]["strategy"])
+
+    ## UNCOMMENT IF YOU WANT TO SEE THE CLASS STRUCTURE
+    #if i == 0:
+    #    print("\n\n", team_name, "\n\nTeam Roles [Parent Classes]: ")
+    #    team_name.get_roles()
+    #    print("\n\n", team_name, "\n\nTeam Members [Class instances]: ")
+    #    print("=="*30)
+    #    team_name.get_players()
+    #    pause = input("Press ENTER to continue")
+
+    g1.insert_team(team_name)
+
+  g1.not_deadlocked = True
+
+  while g1.not_deadlocked:
+    g1.time_step()
+
+def do_trial(i, user_input):
+  num_sides = user_input.num_sides
+  sides = [x for x in range(num_sides)]
+  print("async i = ", i, "with sides", sides)
+  g1 = Game(user_input.game, 8, sides, user_input.display_board_positions)
+  run_trial(g1, user_input)
+
 def run_trials(user_input):
   """ Runs the num_trials """
 
@@ -872,52 +903,29 @@ def run_trials(user_input):
   timestamp = time.strftime('%b_%d_%Y_%H%M', t)
 
   num_trials = user_input.num_trials
-  num_sides = user_input.num_sides
 
-  HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(num_trials) + "_trials_" +
-                  str(num_sides) + "_sides_" + str(timestamp))
+  HISTORY_FILE = ("./data_data/reinforcement_learning/results/history_file_" + str(num_trials) + "_trials_" +
+                  str(user_input.num_sides) + "_sides_" + str(timestamp))
   """ Clear output file """
 
   with open(HISTORY_FILE, "w") as history_file:
     history_file.write("\n")
 
+  pool = ThreadPool()
+
   for i in range(num_trials):
-    sides = [x for x in range(num_sides)]
-    g1 = Game(user_input.game, 8, sides, user_input.display_board_positions)
-
-    def run_trial():
-      for j in range(user_input.num_sides):
-        team_name = "team_" + str(j)
-        team_name = Team(user_input.game, user_input.teams[j]["team_name"], j,
-                         user_input.teams[j]["skill"] / 10,
-                         user_input.teams[j]["strategy"])
-
-        ## UNCOMMENT IF YOU WANT TO SEE THE CLASS STRUCTURE
-        #if i == 0:
-        #    print("\n\n", team_name, "\n\nTeam Roles [Parent Classes]: ")
-        #    team_name.get_roles()
-        #    print("\n\n", team_name, "\n\nTeam Members [Class instances]: ")
-        #    print("=="*30)
-        #    team_name.get_players()
-        #    pause = input("Press ENTER to continue")
-
-        g1.insert_team(team_name)
-
-      g1.not_deadlocked = True
-
-      while g1.not_deadlocked:
-        g1.time_step()
-
-    run_trial()
-
+    print("i = ", i)
+    pool.apply_async(do_trial, args=(i, user_input));
     cycle += 1
+
+  pool.close()
+  pool.join()
 
 
 ########################################################################################################################
 
 
 def main():
-
   global cycle
   global HISTORY_FILE
   global score_board
