@@ -145,7 +145,6 @@ games = {
 ########################################################################################################################
 
 import random
-from multiprocessing.pool import ThreadPool
 import matplotlib.pyplot as plot
 import numpy as np
 import os
@@ -153,7 +152,7 @@ import os
 import time, os, fnmatch, shutil
 
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 HISTORY_FILE = None
 
 cycle = 0
@@ -182,8 +181,9 @@ class Game:
     self.team = {}
     self.display_board_positions = display_board_positions
     self.score_board = score_board
-    self.horizon = []
+    self.horizon = ""
     self.states = [] 
+    self.last_action = ""
 
   def __str__(self):
     os.system('clear')
@@ -238,7 +238,7 @@ class Game:
       for player in team.players
     ]
     team.feasible_moves.clear()
-
+    
     feasible_moves = self.get_feasible_moves(team)
 
     team.feasible_moves.append(feasible_moves)
@@ -301,6 +301,7 @@ class Game:
       if player.value > best_move[0].value:
         best_move = (player, move, curr_pos, new_pos)
         #print("\nmove:\t{}\n".format(best_move))
+        #print("BEST MOVE:\t{}".format(best_move))
     return best_move
 
   # Returns a random selection from teh feasible_moves list
@@ -332,16 +333,10 @@ class Game:
 
     state = self.board
 
-    #print(state)
-
     board = np.zeros(len(state.keys()), int).reshape(8, 8)
-
-    #print(state.keys())
 
     numeric_names_ = dict([(x[1], x[0] + 1)
                            for x in enumerate(filter(None, state.values()))])
-
-    #print(numeric_names_)
 
     temp_num_names = numeric_names_.values()
 
@@ -353,13 +348,7 @@ class Game:
       else:
         temp_list.append(num_name)
 
-    #print(temp_list)
-
     numeric_names = dict(zip(numeric_names_, temp_list))
-
-    #print(numeric_names)
-
-    #print(dict([(x[1], x[0]) for x in enumerate(state.values())]))
 
     for board_position in state.keys():
       try:
@@ -370,26 +359,42 @@ class Game:
       except:
         pass
 
-    #print(board)
-
-
     self.team[turn].feasible_moves.clear()
     self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
 
-    if len(self.team[turn].feasible_moves) == 0:
+    
+    if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
       #print("\n\nCould not identify any feasible moves....")
-
+      
       for turns in range(len(self.sides)):
 
         summary = str(cycle) + "," + str(self.team[turns].name) + "," + str(
           self.move_count) + "," + str(self.team[turns].Points)
 
-        with open(HISTORY_FILE, "a") as history_file:
-           horizon = str(str(cycle)+"\t"+str(self.horizon))
-           history_file.write(horizon)
-           history_file.write("\n")
-
         score_board[turns].append(tuple((cycle, self.team[turns].Points)))
+      
+        if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
+
+          if "w__K" not in self.team[0].players:
+              value   = -20
+          elif "b__K" not in self.team[1].players:
+              value   = 20
+          else:
+              value   = 0
+
+        state_action = self.last_action.split("\t")
+
+        state_action [-5] = str(value)
+
+        state_action = "\t".join(state_action)
+
+        self.horizon += state_action
+
+      with open(HISTORY_FILE, "a") as history_file:
+        horizon = str(self.horizon)
+        history_file.write(horizon)
+        history_file.write("\n")
+
 
       self.not_deadlocked = False
 
@@ -403,12 +408,21 @@ class Game:
 
         player, move, curr_pos, new_position = self.get_random_move(turn)
       
-      action  = str([player, move, curr_pos, new_position]).replace(" ","")
+      action_verbose  = str((player, move, curr_pos, new_position)).replace(" ","")
       state   = [x for x in board.flatten()]
-      value   = sum(state)
-      state_action = [str(self.move_count),str(state).replace(" ",""),str(value),str(action),None,None]                     
-      
-      self.horizon.append(state_action)
+      value   = -1
+
+      if player.start_pos[0] > 1:
+          player_id = player.start_pos[0]*8 + player.start_pos[1] - 65
+      else:
+          player_id = player.start_pos[0]*8 + player.start_pos[1]
+
+      action_sparse = str(player_id).replace(" ","") + "," + str( move[0]).replace(" ","") + "," + str( move[1]).replace(" ","")
+
+      state_action = str(cycle) + "\t" + str(self.move_count) + "\t" + str(state).replace(" ","") + "\t" +  str(value) + "\t" + str(action_sparse) + "\t" + action_verbose + "\t" + str(0) +"\t" + str(0) + "\n"
+
+      self.horizon += state_action
+      self.last_action = state_action
       
       self.board[curr_pos] = None
       self.update_board(player, new_position)
@@ -863,36 +877,6 @@ def plot_results(user_input):
 ########################################################################################################################
 
 
-def run_trial(g1, user_input):
-  for j in range(user_input.num_sides):
-    team_name = "team_" + str(j)
-    team_name = Team(user_input.game, user_input.teams[j]["team_name"], j,
-                     user_input.teams[j]["skill"] / 10,
-                     user_input.teams[j]["strategy"])
-
-    ## UNCOMMENT IF YOU WANT TO SEE THE CLASS STRUCTURE
-    #if i == 0:
-    #    print("\n\n", team_name, "\n\nTeam Roles [Parent Classes]: ")
-    #    team_name.get_roles()
-    #    print("\n\n", team_name, "\n\nTeam Members [Class instances]: ")
-    #    print("=="*30)
-    #    team_name.get_players()
-    #    pause = input("Press ENTER to continue")
-
-    g1.insert_team(team_name)
-
-  g1.not_deadlocked = True
-
-  while g1.not_deadlocked:
-    g1.time_step()
-
-def do_trial(i, user_input):
-  num_sides = user_input.num_sides
-  sides = [x for x in range(num_sides)]
-  print("async i = ", i, "with sides", sides)
-  g1 = Game(user_input.game, 8, sides, user_input.display_board_positions)
-  run_trial(g1, user_input)
-
 def run_trials(user_input):
   """ Runs the num_trials """
 
@@ -903,29 +887,52 @@ def run_trials(user_input):
   timestamp = time.strftime('%b_%d_%Y_%H%M', t)
 
   num_trials = user_input.num_trials
+  num_sides = user_input.num_sides
 
-  HISTORY_FILE = ("./data_data/reinforcement_learning/results/history_file_" + str(num_trials) + "_trials_" +
-                  str(user_input.num_sides) + "_sides_" + str(timestamp))
+  HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(num_trials) + "_trials_" +
+                  str(num_sides) + "_sides_" + str(timestamp))
   """ Clear output file """
 
   with open(HISTORY_FILE, "w") as history_file:
     history_file.write("\n")
 
-  pool = ThreadPool()
-
   for i in range(num_trials):
-    print("i = ", i)
-    pool.apply_async(do_trial, args=(i, user_input));
-    cycle += 1
+    sides = [x for x in range(num_sides)]
+    g1 = Game(user_input.game, 8, sides, user_input.display_board_positions)
 
-  pool.close()
-  pool.join()
+    def run_trial():
+      for j in range(user_input.num_sides):
+        team_name = "team_" + str(j)
+        team_name = Team(user_input.game, user_input.teams[j]["team_name"], j,
+                         user_input.teams[j]["skill"] / 10,
+                         user_input.teams[j]["strategy"])
+
+        ## UNCOMMENT IF YOU WANT TO SEE THE CLASS STRUCTURE
+        #if i == 0:
+        #    print("\n\n", team_name, "\n\nTeam Roles [Parent Classes]: ")
+        #    team_name.get_roles()
+        #    print("\n\n", team_name, "\n\nTeam Members [Class instances]: ")
+        #    print("=="*30)
+        #    team_name.get_players()
+        #    pause = input("Press ENTER to continue")
+
+        g1.insert_team(team_name)
+
+      g1.not_deadlocked = True
+
+      while g1.not_deadlocked:
+        g1.time_step()
+
+    run_trial()
+
+    cycle += 1
 
 
 ########################################################################################################################
 
 
 def main():
+
   global cycle
   global HISTORY_FILE
   global score_board
