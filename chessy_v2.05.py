@@ -144,6 +144,9 @@ games = {
 
 ########################################################################################################################
 
+
+
+
 import random
 import matplotlib.pyplot as plot
 import numpy as np
@@ -163,6 +166,9 @@ rewards = [[], []]
 history = {"cycle": cycle, "actions": actions, "rewards": rewards, "value": 0}
 
 score_board = {}
+
+numeric_names = {'w_R0': 1, 'w_K0': 2, 'w_B0': 3, 'w__K': 4, 'w__Q': 5, 'w_B1': 6, 'w_K1': 7, 'w_R1': 8, 'w_P0': 9, 'w_P1': 10, 'w_P2': 11, 'w_P3': 12, 'w_P4': 13, 'w_P5': 14, 'w_P6': 15, 'w_P7': 16, 'b_P0': -16, 'b_P1': -15, 'b_P2': -14, 'b_P3': -13, 'b_P4': -12, 'b_P5': -11, 'b_P6': -10, 'b_P7': -9, 'b_R0': -8, 'b_K0': -7, 'b_B0': -6, 'b__K': -5, 'b__Q': -4, 'b_B1': -3, 'b_K1': -2, 'b_R1': -1}
+
 
 ########################################################################################################################
 
@@ -228,6 +234,7 @@ class Game:
   # Moves game piece to new location on the board
   # If playing competitively, replace incumbent piece
   def update_board(self, player, position):
+
     if self.board[position] is not None:
       #print("REPLACING: ", self.board[position])
       if (player.board_name.startswith("w")):
@@ -237,6 +244,8 @@ class Game:
         del self.team[0].players[self.board[position]]
 
     self.board[position] = player.board_name
+
+
 
   # Inserts team onto board. Invoked when game starts
   def insert_team(self, team):
@@ -309,8 +318,6 @@ class Game:
         #Testing whether policy_dict returns policy
         state = str(state).replace(" ","")[1:-1]
         
-        print("STATE as seen ny GET_BEST_MOVE:\n{}".format(state))
-
         # I got really lazy here -- need to figure out why data is improperly formatted in the first place
         player, move, curr_pos, new_position =  policy_dict[state].split("(")[1:]
         player = player[:-1]
@@ -325,7 +332,7 @@ class Game:
         for player_, move_,curr_pos_, new_pos_ in moves:
             if curr_pos_ == curr_pos:
                 best_policy = (player_, move_, curr_pos_, new_pos_)
-                #print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
+                print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
 
                 return best_policy
             else:
@@ -339,7 +346,7 @@ class Game:
        for player, move, curr_pos, new_pos in moves:
            if player.value > best_move[0].value:
                best_move = (player, move, curr_pos, new_pos)
-    
+       print("BEST MOVE:\{}".format(best_move)) 
        return best_move
 
 
@@ -372,24 +379,7 @@ class Game:
 
     state = self.board
     
-    print("SELF.BOARD as seen in TIME_STEP:\n{}\n".format(state))
-
     board = np.zeros(len(state.keys()), int).reshape(8, 8)
-
-    numeric_names_ = dict([(x[1], x[0] + 1)
-                           for x in enumerate(filter(None, state.values()))])
-
-    temp_num_names = numeric_names_.values()
-
-    temp_list = []
-
-    for num_name in temp_num_names:
-      if num_name > 16:
-        temp_list.append(num_name - 33)
-      else:
-        temp_list.append(num_name)
-
-    numeric_names = dict(zip(numeric_names_, temp_list))
 
     for board_position in state.keys():
       try:
@@ -401,7 +391,7 @@ class Game:
         pass
     
     state   = [x for x in board.flatten()]
-    
+   
     print("BOARD as seen in TIME_STEP:\n{}\n".format(board))
 
     self.team[turn].feasible_moves.clear()
@@ -459,15 +449,9 @@ class Game:
       value   = -1
 
       if player.start_pos[0] > 1:
-          print("======== START_POS > 1 ========\n")
-          print(player.name,player.board_name, player.number, player.start_pos)
-          player_id = player.start_pos[0]*8 + player.start_pos[1] - 65
-          print(player.name, player.number, player_id)
+          player_id = player.start_pos[0]*8 + player.start_pos[1] - 64
       else:
-          print("******* START_POS <=1 ********\n")
-          print(player.name,player.board_name, player.number, player.start_pos)
-          player_id = player.start_pos[0]*8 + player.start_pos[1]
-          print(player.name, player.number, player_id)
+          player_id = player.start_pos[0]*8 + player.start_pos[1] + 1
 
       action_sparse = str(player_id).replace(" ","") + "," + str( move[0]).replace(" ","") + "," + str( move[1]).replace(" ","")
 
@@ -477,6 +461,7 @@ class Game:
       self.last_action = state_action
       
       self.board[curr_pos] = None
+
       self.update_board(player, new_position)
   
       print("BOARD after SELF.UPDATE_BOARD:\n{}\n".format(board))
@@ -487,9 +472,6 @@ class Game:
         for playerr in self.team[turn].players
         if self.team[turn].players[playerr].board_name == player.board_name
       ]
-
-      print("BOARD AFTER SELF.TEAM[turn].players[playerr].set_position:\n{}\n".format(board)) 
-
 
       self.team[turn].Points += player.value
       #print("Player:\t{}\tCurrent_Position:\t{}\tNew_Position:\t{}".format(player, curr_pos, new_position))
