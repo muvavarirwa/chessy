@@ -240,7 +240,6 @@ class Game:
       if (player.board_name.startswith("w")):
         del self.team[1].players[self.board[position]]
       else:
-        print(self.team[0].players.keys())
         del self.team[0].players[self.board[position]]
 
     self.board[position] = player.board_name
@@ -332,8 +331,6 @@ class Game:
         for player_, move_,curr_pos_, new_pos_ in moves:
             if curr_pos_ == curr_pos:
                 best_policy = (player_, move_, curr_pos_, new_pos_)
-                print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
-
                 return best_policy
             else:
                 #print(curr_pos_, curr_pos)
@@ -346,7 +343,6 @@ class Game:
        for player, move, curr_pos, new_pos in moves:
            if player.value > best_move[0].value:
                best_move = (player, move, curr_pos, new_pos)
-       print("BEST MOVE:\{}".format(best_move)) 
        return best_move
 
 
@@ -392,8 +388,6 @@ class Game:
     
     state   = [x for x in board.flatten()]
    
-    print("BOARD as seen in TIME_STEP:\n{}\n".format(board))
-
     self.team[turn].feasible_moves.clear()
     self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
 
@@ -464,9 +458,6 @@ class Game:
 
       self.update_board(player, new_position)
   
-      print("BOARD after SELF.UPDATE_BOARD:\n{}\n".format(board))
-
-
       [
         self.team[turn].players[playerr].set_position(new_position)
         for playerr in self.team[turn].players
