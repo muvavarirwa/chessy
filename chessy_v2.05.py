@@ -148,9 +148,10 @@ import random
 import matplotlib.pyplot as plot
 import numpy as np
 import os
-
+import jsonlines
+import ast
 import time, os, fnmatch, shutil
-
+from collections import defaultdict
 import matplotlib
 #matplotlib.use('Agg')
 HISTORY_FILE = None
@@ -165,6 +166,15 @@ score_board = {}
 
 ########################################################################################################################
 
+policy_dict = defaultdict()
+
+with open('/data_data/reinforcement_learning/results/policy_chessy_5M.json_','r') as policy_file:
+    policies = policy_file.readlines() 
+    for policy in policies:
+        state,action = policy.split("\t")
+        policy_dict.update({state:action[:-1]})
+
+########################################################################################################################
 
 class Game:
   """Game controller. Creates board. Invokes Team() to create teams+players. Updates and maintains game state"""
@@ -287,22 +297,51 @@ class Game:
   # Returns the apriori conception of a best move (move most valuable players first) from the feasible_moves list
   # In this version of the game: Expert team (rating 10), always calls get_best_move for each play
 
-  def get_best_move(self, turn):
+  def get_best_move(self, turn, state):
     """Loops through feasible_moves and returns best moves -- based on value"""
-
+    
     moves = list(
-      set([(player, move, curr_pos, new_position)
+           set([(player, move, curr_pos, new_position)
            for player, move, curr_pos, new_position in self.team[turn]
            .feasible_moves]))
-    #print("\n\n","=="*30,"\n\n")
-    best_move = moves[0]
+          
+    try:
+        #Testing whether policy_dict returns policy
+        state = str(state).replace(" ","")[1:-1]
+        
+        print("STATE as seen ny GET_BEST_MOVE:\n{}".format(state))
 
-    for player, move, curr_pos, new_pos in moves:
-      if player.value > best_move[0].value:
-        best_move = (player, move, curr_pos, new_pos)
-        #print("\nmove:\t{}\n".format(best_move))
-        #print("BEST MOVE:\t{}".format(best_move))
-    return best_move
+        # I got really lazy here -- need to figure out why data is improperly formatted in the first place
+        player, move, curr_pos, new_position =  policy_dict[state].split("(")[1:]
+        player = player[:-1]
+        move   = tuple([int(x) for x in move[:-2].split(",")])
+        curr_pos = tuple([int(x) for x in curr_pos[:-2].split(",")])
+        new_position = tuple([int(x) for x in new_position[:-2].split(",")])
+        best_policy = (player, move, curr_pos, new_position)
+        #print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
+        #print("****"*10)
+        #print("Feasible moves: {}".format(moves))
+        #print("****"*10)
+        for player_, move_,curr_pos_, new_pos_ in moves:
+            if curr_pos_ == curr_pos:
+                best_policy = (player_, move_, curr_pos_, new_pos_)
+                #print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
+
+                return best_policy
+            else:
+                #print(curr_pos_, curr_pos)
+                pass         
+        #print("UNABLE TO GET BEST POLICY FROM FEASIBLE MOVES")
+    except:
+       #print("Could not find BEST POLICY")
+       best_move = moves[0]
+     
+       for player, move, curr_pos, new_pos in moves:
+           if player.value > best_move[0].value:
+               best_move = (player, move, curr_pos, new_pos)
+    
+       return best_move
+
 
   # Returns a random selection from teh feasible_moves list
   # In this version of the game: Novice team (rating 1), always calls get_random_move for each play
@@ -332,6 +371,8 @@ class Game:
     turn = self.move_count % len(self.sides)
 
     state = self.board
+    
+    print("SELF.BOARD as seen in TIME_STEP:\n{}\n".format(state))
 
     board = np.zeros(len(state.keys()), int).reshape(8, 8)
 
@@ -358,11 +399,16 @@ class Game:
           pass
       except:
         pass
+    
+    state   = [x for x in board.flatten()]
+    
+    print("BOARD as seen in TIME_STEP:\n{}\n".format(board))
 
     self.team[turn].feasible_moves.clear()
     self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
 
-    
+    #print("SELF[TURN].FEASIBLE_MOVES:\t{}".format(self.team[turn].feasible_moves))
+
     if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
       #print("\n\nCould not identify any feasible moves....")
       
@@ -401,7 +447,7 @@ class Game:
     else:
 
       if self.team[turn].move_choice[self.move_count]:
-        player, move, curr_pos, new_position = self.get_best_move(turn)
+        player, move, curr_pos, new_position = self.get_best_move(turn,state)
 
 
       else:
@@ -413,25 +459,37 @@ class Game:
       value   = -1
 
       if player.start_pos[0] > 1:
+          print("======== START_POS > 1 ========\n")
+          print(player.name,player.board_name, player.number, player.start_pos)
           player_id = player.start_pos[0]*8 + player.start_pos[1] - 65
+          print(player.name, player.number, player_id)
       else:
+          print("******* START_POS <=1 ********\n")
+          print(player.name,player.board_name, player.number, player.start_pos)
           player_id = player.start_pos[0]*8 + player.start_pos[1]
+          print(player.name, player.number, player_id)
 
       action_sparse = str(player_id).replace(" ","") + "," + str( move[0]).replace(" ","") + "," + str( move[1]).replace(" ","")
 
       state_action = str(cycle) + "\t" + str(self.move_count) + "\t" + str(state).replace(" ","") + "\t" +  str(value) + "\t" + str(action_sparse) + "\t" + action_verbose + "\t" + str(0) +"\t" + str(0) + "\n"
-
+      
       self.horizon += state_action
       self.last_action = state_action
       
       self.board[curr_pos] = None
       self.update_board(player, new_position)
+  
+      print("BOARD after SELF.UPDATE_BOARD:\n{}\n".format(board))
+
 
       [
         self.team[turn].players[playerr].set_position(new_position)
         for playerr in self.team[turn].players
         if self.team[turn].players[playerr].board_name == player.board_name
       ]
+
+      print("BOARD AFTER SELF.TEAM[turn].players[playerr].set_position:\n{}\n".format(board)) 
+
 
       self.team[turn].Points += player.value
       #print("Player:\t{}\tCurrent_Position:\t{}\tNew_Position:\t{}".format(player, curr_pos, new_position))
