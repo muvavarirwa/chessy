@@ -169,12 +169,14 @@ score_board = {}
 
 numeric_names = {'w_R0': 1, 'w_K0': 2, 'w_B0': 3, 'w__K': 4, 'w__Q': 5, 'w_B1': 6, 'w_K1': 7, 'w_R1': 8, 'w_P0': 9, 'w_P1': 10, 'w_P2': 11, 'w_P3': 12, 'w_P4': 13, 'w_P5': 14, 'w_P6': 15, 'w_P7': 16, 'b_P0': -16, 'b_P1': -15, 'b_P2': -14, 'b_P3': -13, 'b_P4': -12, 'b_P5': -11, 'b_P6': -10, 'b_P7': -9, 'b_R0': -8, 'b_K0': -7, 'b_B0': -6, 'b__K': -5, 'b__Q': -4, 'b_B1': -3, 'b_K1': -2, 'b_R1': -1}
 
+best_moves = 0
+policy_moves = 0
 
 ########################################################################################################################
 
 policy_dict = defaultdict()
 
-with open('/data_data/reinforcement_learning/results/policy_chessy_5M.json_','r') as policy_file:
+with open('/data_data/reinforcement_learning/results/policy_2M.json','r') as policy_file:
     policies = policy_file.readlines() 
     for policy in policies:
         state,action = policy.split("\t")
@@ -308,6 +310,9 @@ class Game:
   def get_best_move(self, turn, state):
     """Loops through feasible_moves and returns best moves -- based on value"""
     
+    global best_moves
+    global policy_moves
+
     moves = list(
            set([(player, move, curr_pos, new_position)
            for player, move, curr_pos, new_position in self.team[turn]
@@ -953,7 +958,7 @@ def run_trials(user_input):
 
       while g1.not_deadlocked:
         g1.time_step()
-
+    print("BEST_MOVES:\t{}\t:{}\n".format(best_moves,policy_moves)) 
     run_trial()
 
     cycle += 1
@@ -972,7 +977,6 @@ def main():
   user_input = userInput()
   run_trials(user_input)
   plot_results(user_input)
-
 
 main()
 
