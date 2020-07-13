@@ -144,37 +144,9 @@ games = {
 
 ########################################################################################################################
 
-# HELPER FUNCTIONS TO SIMPLIFY EVAL PROCESSING OF RETURN VALUES FROM API CALLS
-
-########################################################################################################################
-
-def getFunc(piece):
-    def piece_func():
-        return piece
-    return piece_func()
-
-def Bishop():
-    return getFunc("Bishop")
-
-def Pawn():
-    return getFunc("Pawn")
-
-def King():
-    return getFunc("King")
-
-def Queen():
-    return getFunc("Queen")
-
-def Knight():
-    return getFunc("Knight")
-
-def Rook():
-    return getFunc("Rook")
 
 
-########################################################################################################################
 
-import json
 import random
 import matplotlib.pyplot as plot
 import numpy as np
@@ -184,14 +156,8 @@ import ast
 import time, os, fnmatch, shutil
 from collections import defaultdict
 import matplotlib
-import requests
-
 #matplotlib.use('Agg')
-
-
 HISTORY_FILE = None
-
-summary_dict = {"losses":0,"wins":0,"draws":0}
 
 cycle = 0
 
@@ -200,28 +166,21 @@ rewards = [[], []]
 history = {"cycle": cycle, "actions": actions, "rewards": rewards, "value": 0}
 
 score_board = {}
-step_action_dict = defaultdict()
-step_action_dict['random_moves'] = defaultdict()
-step_action_dict['policy_moves'] = defaultdict()
 
 numeric_names = {'w_R0': 1, 'w_K0': 2, 'w_B0': 3, 'w__K': 4, 'w__Q': 5, 'w_B1': 6, 'w_K1': 7, 'w_R1': 8, 'w_P0': 9, 'w_P1': 10, 'w_P2': 11, 'w_P3': 12, 'w_P4': 13, 'w_P5': 14, 'w_P6': 15, 'w_P7': 16, 'b_P0': -16, 'b_P1': -15, 'b_P2': -14, 'b_P3': -13, 'b_P4': -12, 'b_P5': -11, 'b_P6': -10, 'b_P7': -9, 'b_R0': -8, 'b_K0': -7, 'b_B0': -6, 'b__K': -5, 'b__Q': -4, 'b_B1': -3, 'b_K1': -2, 'b_R1': -1}
 
-initial_state =  "010010010011010100010101010110010111011000011001011010011011011100011101011110011111100000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000010000011000100000101000110000111001000001001001010001011001100001101001110001111010000"
-
 best_moves = 0
 policy_moves = 0
-random_moves = 0
 
 ########################################################################################################################
 
-#policy_dict = defaultdict()
+policy_dict = defaultdict()
 
-#with open('/data_data/reinforcement_learning/results/policy_chessy_combined.json','r') as policy_file:
-#    #policies = policy_file.readlines() 
-#    #for policy in policies:
-#    #    state,action = policy.split("\t")
-#    #    policy_dict.update({state:action[:-1]})
-#    policy_dict = json.load(policy_file)
+with open('/data_data/reinforcement_learning/results/policy_2M.json','r') as policy_file:
+    policies = policy_file.readlines() 
+    for policy in policies:
+        state,action = policy.split("\t")
+        policy_dict.update({state:action[:-1]})
 
 ########################################################################################################################
 
@@ -243,9 +202,6 @@ class Game:
     self.horizon = ""
     self.states = [] 
     self.last_action = ""
-    self.wins = 0
-    self.losses = 0
-    self.draws = 0
 
   def __str__(self):
     os.system('clear')
@@ -356,8 +312,6 @@ class Game:
     
     global best_moves
     global policy_moves
-    global random_moves
-    global step_action_dict
 
     moves = list(
            set([(player, move, curr_pos, new_position)
@@ -366,66 +320,56 @@ class Game:
           
     try:
         #Testing whether policy_dict returns policy
-        state = str(state).replace(" ","")
+        state = str(state).replace(" ","")[1:-1]
         
         # I got really lazy here -- need to figure out why data is improperly formatted in the first place
-        #player, move, curr_pos, new_position =  policy_dict[state].split("(")[1:]
-        request = os.path.join('http://127.0.0.1:8000/policy',state)
-        response = requests.get(request)
-        player_func, move, curr_pos, new_position = eval(response.json())
-        player = player_func()
+        player, move, curr_pos, new_position =  policy_dict[state].split("(")[1:]
+        player = player[:-1]
+        move   = tuple([int(x) for x in move[:-2].split(",")])
+        curr_pos = tuple([int(x) for x in curr_pos[:-2].split(",")])
+        new_position = tuple([int(x) for x in new_position[:-2].split(",")])
         best_policy = (player, move, curr_pos, new_position)
+        #print("BEST POLICY:\t{}\tTYPE\t{}".format(best_policy,type(best_policy)))
+        #print("****"*10)
+        #print("Feasible moves: {}".format(moves))
+        #print("****"*10)
         for player_, move_,curr_pos_, new_pos_ in moves:
             if curr_pos_ == curr_pos:
                 best_policy = (player_, move_, curr_pos_, new_pos_)
                 policy_moves += 1
-                if not self.move_count in step_action_dict['policy_moves']:
-                    step_action_dict['policy_moves'][self.move_count] = 0
-                step_action_dict['policy_moves'][self.move_count] += 1
                 return best_policy
             else:
+                #print(curr_pos_, curr_pos)
                 pass         
+        #print("UNABLE TO GET BEST POLICY FROM FEASIBLE MOVES")
     except:
-       global random_moves
-       """Loops through feasible_moves, selects and returns random moves"""
-       moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
-       random_move = random.choice(moves)
-       random_moves += 1
-       if not self.move_count in step_action_dict['random_moves']:
-           step_action_dict[self.move_count] = 0
-       step_action_dict['random_moves'][self.move_count] += 1
-       #print("\nmove:\t{}\n".format(random_move))
-       return random_move
+       #print("Could not find BEST POLICY")
+       best_move = moves[0]
+     
+       for player, move, curr_pos, new_pos in moves:
+           if player.value > best_move[0].value:
+               best_move = (player, move, curr_pos, new_pos)
+       best_moves += 1
+       return best_move
 
 
   # Returns a random selection from teh feasible_moves list
   # In this version of the game: Novice team (rating 1), always calls get_random_move for each play
 
   def get_random_move(self, turn):
-      global random_moves
-      """Loops through feasible_moves, selects and returns random moves"""
-      moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
-      random_move = random.choice(moves)
-      random_moves += 1
-      #print("\nmove:\t{}\n".format(random_move))
-      if not self.move_count in step_action_dict['random_moves']:
-          step_action_dict['random_moves'][self.move_count] = 0
-
-      step_action_dict['random_moves'][self.move_count] += 1
-      return random_move
-
-
-  def getBin(self, num):
-      if int(num) != 0:
-          return "{0:{fill}6b}".format(int(num)+17, fill='0')
-      else:
-          return "{0:{fill}6b}".format(0, fill='0')
-
+    """Loops through feasible_moves, selects and returns random moves"""
+    moves = list(
+      set([(player, move, curr_pos, new_position)
+           for player, move, curr_pos, new_position in self.team[turn]
+           .feasible_moves]))
+    random_move = random.choice(moves)
+    #print("\nmove:\t{}\n".format(random_move))
+    return random_move
 
   # Controls game execution by letting each team play (self.move_count % self.sides)
   # Runs until "not_deadlocked" status turns false, which occurs when number of available moves for the team whose
   # turn it is to play is zero. e.g. len(self.team[turn]feasible_moves == 0)
-  def step(self):
+  def time_step(self):
     """ Invoked by run_trials() -- runs until there are no more board-positions for players to take"""
 
     global not_deadlocked
@@ -449,16 +393,14 @@ class Game:
       except:
         pass
     
-    state   = "".join([self.getBin(x) for x in board.flatten()])
+    state   = [x for x in board.flatten()]
    
     self.team[turn].feasible_moves.clear()
     self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
 
     #print("SELF[TURN].FEASIBLE_MOVES:\t{}".format(self.team[turn].feasible_moves))
 
-    action_size = len(self.team[turn].feasible_moves)
-
-    if action_size == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
+    if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
       #print("\n\nCould not identify any feasible moves....")
       
       for turns in range(len(self.sides)):
@@ -472,21 +414,14 @@ class Game:
 
           if "w__K" not in self.team[0].players:
               value   = -20
-              summary_dict['losses'] += 1
           elif "b__K" not in self.team[1].players:
               value   = 20
-              summary_dict['wins'] += 1
           else:
               value   = 0
-              summary_dict['draws'] += 1
 
         state_action = self.last_action.split("\t")
 
-        state_action[-5] = str(value)
-
-        state_action[-2] = str(0)
-
-        state_action[-1] = str(1) + "\n"
+        state_action [-5] = str(value)
 
         state_action = "\t".join(state_action)
 
@@ -502,19 +437,20 @@ class Game:
 
     else:
 
-      if self.team[turn].move_choice[self.move_count]:
-          try:
-              player, move, curr_pos, new_position = self.get_best_move(turn,state)
-          except:
-              player, move, curr_pos, new_position = self.get_random_move(turn)
+      if self.team[turn].rating == 10:
+          player, move, curr_pos, new_position = self.get_best_move(turn,state)
 
+      elif self.team[turn].rating == 1:
+          player, move, curr_pos, new_position = self.get_random_move(turn)
 
       else:
+          weight = self.team[turn].rating/10
+          moves = random.choice(population=[self.get_best_move(turn,state),self.get_random_move(turn)], weights=[weight, 1-weight], k=1)
+          player, move, curr_pos, new_position = moves 
 
-        player, move, curr_pos, new_position = self.get_random_move(turn)
       
       action_verbose  = str((player, move, curr_pos, new_position)).replace(" ","")
-      state   = "".join([self.getBin(x) for x in board.flatten()])
+      state   = [x for x in board.flatten()]
       value   = -1
 
       if player.start_pos[0] > 1:
@@ -524,11 +460,11 @@ class Game:
 
       action_sparse = str(player_id).replace(" ","") + "," + str( move[0]).replace(" ","") + "," + str( move[1]).replace(" ","")
 
-      state_action = str(cycle) + "\t" + str(self.move_count) + "\t" + str(state).replace(" ","") + "\t" +  str(value) + "\t" + str(action_sparse) + "\t" + action_verbose + "\t" + str(action_size) +"\t" + str(0) + "\n"
+      state_action = str(cycle) + "\t" + str(self.move_count) + "\t" + str(state).replace(" ","") + "\t" +  str(value) + "\t" + str(action_sparse) + "\t" + action_verbose + "\t" + str(0) +"\t" + str(0) + "\n"
       
       self.horizon += state_action
       self.last_action = state_action
-      self.states.append(state)    
+      
       self.board[curr_pos] = None
 
       self.update_board(player, new_position)
@@ -988,17 +924,13 @@ def run_trials(user_input):
 
   global cycle
   global HISTORY_FILE
-  global SUMMARY_FILE
 
   t = time.localtime()
   timestamp = time.strftime('%b_%d_%Y_%H%M', t)
+
   num_trials = user_input.num_trials
   num_sides = user_input.num_sides
-  
 
-
-  SUMMARY_FILE = ("/data_data/reinforcement_learning/results/summary_file.tsv")
-  
   HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(num_trials) + "_trials_" +
                   str(num_sides) + "_sides_" + str(timestamp))
   """ Clear output file """
@@ -1008,7 +940,7 @@ def run_trials(user_input):
 
   for i in range(num_trials):
     sides = [x for x in range(num_sides)]
-    env = Game(user_input.game, 8, sides, user_input.display_board_positions)
+    g1 = Game(user_input.game, 8, sides, user_input.display_board_positions)
 
     def run_trial():
       for j in range(user_input.num_sides):
@@ -1026,48 +958,17 @@ def run_trials(user_input):
         #    team_name.get_players()
         #    pause = input("Press ENTER to continue")
 
-        env.insert_team(team_name)
+        g1.insert_team(team_name)
 
-      env.not_deadlocked = True
-      env.states.append(initial_state)
-      time_step = 0
-      while env.not_deadlocked:
-        state_prior = env.states[-1] 
-        env.step()
-        next_state = ""
-        state_prime = ""
-        if time_step % 2 == 0:
-             state_prime = env.states[-1]
-        else:
-             next_state = env.states[-1]
-        print("STATE_PRIOR:\t{}\nNEXT_STATE:\t{}\n".format(state_prior,next_state))
-        print((state_prior == next_state))
-        #print("RANDOM_MOVES:\t{}\tPOLICY_MOVES:\t{}\n".format(random_moves,policy_moves))
-        time_step += 1
+      g1.not_deadlocked = True
+
+      while g1.not_deadlocked:
+        g1.time_step()
+    print("BEST_MOVES:\t{}\tPOLICY_MOVES:{}\n".format(best_moves,policy_moves)) 
     run_trial()
 
     cycle += 1
-  
-  agent_scores = sum([score for idx,score in score_board[0]])
-  environment_scores = sum([score for idx, score in score_board[1]])
-  agent_wins  = int(summary_dict['wins']/2)/num_trials
-  agent_losses= int(summary_dict['losses']/2)/num_trials
-  agent_draws = int(summary_dict['draws']/2)/num_trials
-  agent_avg_scores = round(agent_scores/num_trials,2)
-  agent_env_score_ratio  = round(agent_scores/environment_scores,2)
-  environment_avg_scores = round(environment_scores/num_trials,2)
-  total_moves = policy_moves + random_moves
-  moves_per_episode = round(total_moves/num_trials,2)
-  policy_move_ratio = round(policy_moves/total_moves,2)
-  random_move_ratio = round(random_moves/total_moves,2)
-  print("random_moves: {}\tpolicy_moves: {}".format(random_moves,policy_moves))
-  summary = str([HISTORY_FILE, user_input.teams[0]['strategy'], user_input.teams[0]["skill"], user_input.teams[1]['strategy'], user_input.teams[1]['skill'],total_moves,moves_per_episode,policy_move_ratio,random_move_ratio, agent_avg_scores, environment_avg_scores,agent_env_score_ratio,agent_wins,agent_losses, agent_draws])
- 
 
-  with open(SUMMARY_FILE,'a') as summary_file:
-      summary_file.write(summary)
-      print("SUMMARY OF RESULTS:\t{}",summary)
-      summary_file.write("\n")
 
 ########################################################################################################################
 
@@ -1082,15 +983,7 @@ def main():
   user_input = userInput()
   run_trials(user_input)
   plot_results(user_input)
-  print(step_action_dict.items())
-  x_policy_moves = list(step_action_dict['policy_moves'].keys())
-  x_random_moves = list(step_action_dict['random_moves'].keys())
-  y_policy_moves = list(step_action_dict['policy_moves'].values())
-  y_random_moves = list(step_action_dict['random_moves'].values())
-  # y = list(step_action_dict.values())
-  plot.plot(x_random_moves,y_random_moves, 'bo')
-  plot.plot(x_policy_moves,y_policy_moves, 'r--')
-  plot.show()
+
 main()
 
 ########################################################################################################################
