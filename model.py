@@ -43,7 +43,7 @@ class ActorNetwork(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        return F.log_softmax(self.fc4(x))
+        return F.softmax(self.fc4(x))
     
     
 class CriticNetwork(nn.Module):

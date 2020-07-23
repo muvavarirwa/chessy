@@ -44,7 +44,7 @@ class Game:
         self.best_moves      = 0
         self.feasible_moves_ = None 
         self.action_ids      = np.arange(0,len(sparse_action_dict.keys()),1)
-        self.action_id_dict  = {y:x for x,y in zip(action_ids,sparse_action_dict.keys())}
+        self.action_id_dict  = {y:x for x,y in zip(self.action_ids,sparse_action_dict.keys())}
 
 
     def __str__(self):
@@ -211,6 +211,26 @@ class Game:
       # Controls game execution by letting each team play (self.move_count % self.sides)
       # Runs until "not_deadlocked" status turns false, which occurs when number of available moves for the team whose
       # turn it is to play is zero. e.g. len(self.team[turn]feasible_moves == 0)
+    
+    def get_state(self):
+        
+        state = self.board
+
+        board = np.zeros(len(state.keys()), int).reshape(8, 8)
+
+        for board_position in state.keys():
+            
+            try:
+                if numeric_names[state[board_position]] < 64:
+                    board[board_position] = numeric_names[state[board_position]]
+                else:
+                    pass
+            except:
+                pass
+
+        state   = "".join([self.getBin(x) for x in board.flatten()])
+        
+        return state, board
 
     def step(self,cycle,user_input):
         """ Invoked by run_trials() -- runs until there are no more board-positions for players to take"""
@@ -227,21 +247,23 @@ class Game:
         
         turn = self.move_count % len(self.sides)
 
-        state = self.board
+        #state = self.board
 
-        board = np.zeros(len(state.keys()), int).reshape(8, 8)
+        #board = np.zeros(len(state.keys()), int).reshape(8, 8)
 
-        for board_position in state.keys():
+        #for board_position in state.keys():
             
-            try:
-                if numeric_names[state[board_position]] < 64:
-                    board[board_position] = numeric_names[state[board_position]]
-                else:
-                    pass
-            except:
-                pass
+        #    try:
+        #        if numeric_names[state[board_position]] < 64:
+        #            board[board_position] = numeric_names[state[board_position]]
+        #        else:
+        #            pass
+        #    except:
+        #        pass
 
-        state   = "".join([self.getBin(x) for x in board.flatten()])
+        #state   = "".join([self.getBin(x) for x in board.flatten()])
+    
+        state, board = self.get_state()
 
         self.team[turn].feasible_moves.clear()
         self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
@@ -301,6 +323,8 @@ class Game:
             self.not_deadlocked = False
             
         else:
+            
+            state, board = self.get_state()
 
             if self.team[turn].move_choice[self.move_count]:
                 try:
@@ -312,7 +336,7 @@ class Game:
 
             action_verbose  = str((player, move, curr_pos, new_position)).replace(" ","")
             
-            state   = "".join([self.getBin(x) for x in board.flatten()])
+            #state   = "".join([self.getBin(x) for x in board.flatten()])
             
             value   = -1
 
