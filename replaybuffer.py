@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import model
-import agent
+#import agent
 
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""

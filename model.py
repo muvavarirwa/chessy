@@ -67,6 +67,8 @@ class CriticNetwork(nn.Module):
         
     def forward(self, state, action):
         """Build a network that maps state -> action values."""
+        state  = torch.transpose(state, 0,1)
+        action = torch.transpose(action,0,1)
         x = F.relu(self.fc1(torch.cat((state, action))))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))

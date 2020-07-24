@@ -74,9 +74,9 @@ class Agent():
 
             self.actor_network.train()
                 
-            action     += self.noise.sample()
+            #action     += self.noise.sample()
             
-        return np.clip(action,-1,1)
+        return action
 
     def reset(self):
         self.noise.reset()

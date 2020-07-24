@@ -1,5 +1,7 @@
 import json
+import math
 import random
+import copy
 import matplotlib.pyplot as plot
 import numpy as np
 import os
@@ -16,6 +18,18 @@ from player import Player_Template
 from team   import Team
 from userinput import userInput
 
+from collections import namedtuple, deque
+
+import torch
+import torch.optim as optim
+import torch.nn as nn
+import torch.nn.functional as F
+
+import noise
+from noise import OUNoise
+from replaybuffer import ReplayBuffer
+from model import ActorNetwork, CriticNetwork, MCritic
+
 
 class Game:
     """Game controller. Creates board. Invokes Team() to create teams+players. Updates and maintains game state"""
@@ -23,28 +37,35 @@ class Game:
     not_deadlocked = True
     global score_board
     
-    def __init__(self, game, size=8, sides=[], display_board_positions=True):
-        self.game = game
-        self.size = size
-        self.board = self.create_board()
-        self.sides = sides
-        self.team = {}
+    def __init__(self, game, args, size=8, sides=[], display_board_positions=True):
+        self.game               = game
+        self.size               = size
+        self.board              = self.create_board()
+        self.sides              = sides
+        self.team               = {}
         self.display_board_positions = display_board_positions
-        self.score_board = []
-        self.horizon = ""
-        self.states = [] 
-        self.last_action = ""
+        self.score_board        = []
+        self.horizon            = ""
+        self.states             = [] 
+        self.last_action        = ""
         self.last_action_sparse = None
-        self.last_reward     = None
-        self.wins            = 0
-        self.losses          = 0
-        self.draws           = 0
-        self.random_moves    = 0
-        self.policy_moves    = 0
-        self.best_moves      = 0
-        self.feasible_moves_ = None 
-        self.action_ids      = np.arange(0,len(sparse_action_dict.keys()),1)
-        self.action_id_dict  = {y:x for x,y in zip(self.action_ids,sparse_action_dict.keys())}
+        self.last_reward        = None
+        self.wins               = 0
+        self.losses             = 0
+        self.draws              = 0
+        self.random_moves       = 0
+        self.policy_moves       = 0
+        self.best_moves         = 0
+        self.feasible_moves_    = None 
+        self.action_ids         = np.arange(0,len(sparse_action_dict.keys()),1)
+        self.action_id_dict     = {y:x for x,y in zip(self.action_ids,sparse_action_dict.keys())}
+        self.args               = args
+        self.state              = self.args['initial_state']
+        self.state_size         = self.args['state_size']
+        self.action_size        = self.args['action_size']
+        self.seed               = args['seed']
+        self.device             = args['device']
+
 
 
     def __str__(self):
@@ -232,13 +253,17 @@ class Game:
         
         return state, board
 
-    def step(self,cycle,user_input):
+    def step(self,cycle,user_input,args):
         """ Invoked by run_trials() -- runs until there are no more board-positions for players to take"""
 
         global not_deadlocked
         global actions
         global rewards
         global history
+        
+        result = None
+        
+        numeric_names = args['numeric_names']
         
         t = time.localtime()
         timestamp = time.strftime('%b_%d_%Y_%H%M', t)
@@ -247,23 +272,27 @@ class Game:
         
         turn = self.move_count % len(self.sides)
 
-        #state = self.board
-
-        #board = np.zeros(len(state.keys()), int).reshape(8, 8)
-
-        #for board_position in state.keys():
+        state = self.board
+        
+        board = np.zeros(len(state.keys()), int).reshape(8, 8)
+              
+        for board_position in state.keys(): 
             
-        #    try:
-        #        if numeric_names[state[board_position]] < 64:
-        #            board[board_position] = numeric_names[state[board_position]]
-        #        else:
-        #            pass
-        #    except:
-        #        pass
-
-        #state   = "".join([self.getBin(x) for x in board.flatten()])
-    
-        state, board = self.get_state()
+            try:
+                if numeric_names[state[board_position]] < 64:
+                    board[board_position] = numeric_names[state[board_position]]
+                    #print(board)
+                else:
+                    pass
+            except:
+                pass
+     
+        #print("BOARD_II:\n{}\n".format(board))
+        #print("====================================================================")
+        
+        state   = "".join([self.getBin(x) for x in board.flatten()])
+        
+        self.state = state
 
         self.team[turn].feasible_moves.clear()
         self.team[turn].feasible_moves = self.get_feasible_moves(self.team[turn])
@@ -322,9 +351,11 @@ class Game:
 
             self.not_deadlocked = False
             
+            result = (self.state, self.last_reward, self.not_deadlocked, (self.team[0].Points, self.team[1].Points))
+            
         else:
             
-            state, board = self.get_state()
+            #state, board = self.get_state()
 
             if self.team[turn].move_choice[self.move_count]:
                 try:
@@ -336,7 +367,9 @@ class Game:
 
             action_verbose  = str((player, move, curr_pos, new_position)).replace(" ","")
             
-            #state   = "".join([self.getBin(x) for x in board.flatten()])
+            state   = "".join([self.getBin(x) for x in board.flatten()])
+            
+            self.state = state
             
             value   = -1
 
@@ -349,6 +382,10 @@ class Game:
             
             state_action = str(cycle) + "\t" + str(self.move_count) + "\t" + str(state).replace(" ","") + "\t" +  str(value) + "\t" + str(action_sparse) + "\t" + action_verbose + "\t" + str(action_size) +"\t" + str(0) + "\n"
 
+            #self.state = state
+            #print("STATE:\n{}\n".format(state))
+            #print("BOARD:\n{}\n".format(self.board))
+            
             self.horizon += state_action
             self.last_action = state_action
             self.last_action_sparse = action_sparse
@@ -366,6 +403,7 @@ class Game:
             if self.display_board_positions:
                 self.__str__()
             self.move_count += 1
-
-
-
+            
+            result = (self.state, self.last_reward, self.not_deadlocked, (self.team[0].Points, self.team[1].Points))
+            
+        return result
