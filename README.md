@@ -21,7 +21,7 @@ sides can achieve a shared objective (get as many pieces as possible to the othe
 'taking any pieces from the 'opposing' team. v2 will provide a mechanism for comparing the distribution of costs/value
 between cooperative vs competitive iterations
 
-#### KEY CONCEPTS
+#### Key Concepts
 Framework supports any game scenario whose geometry can be implemented programmatically (chess, chechers, go etc)
 Players can enter game at any point in time (need not be simultaneous). Available in v2
 Players can have different skill levels [1 = Novice 10 = Expert]
@@ -29,7 +29,7 @@ Players can have different skill levels [1 = Novice 10 = Expert]
 - Subsequent iterations could use this harness to train the expert (by evaluating moves by a random agent that beats
 the expert ( Bayesian approaches might be useful here ).
 
-#### ARCHITECTURE
+#### Architecture
 Chessy employs two patterns:
 - a form of dependency injection / factory-pattern whereby metadata specifying the rules of a game are
 presented in JSON/Python-dictionary format [refer games dictionary object below]
@@ -38,9 +38,9 @@ presented in JSON/Python-dictionary format [refer games dictionary object below]
 instantiating specific players [b_Pawn_01, w_King, b_K1 etc)
 
 
-#### ORGANIZATION
+#### Organization
 
-##### CLASSES
+##### Classes
 
 - Game: Controller. Creates board. Invokes Team() to create teams+players. Updates and maintains game state (time_step)
 - Team: Instance per team. Invoked by Game(). Invokes Player_Template
@@ -49,7 +49,7 @@ instantiating specific players [b_Pawn_01, w_King, b_K1 etc)
 - UserInput: [arguably duplicative] class by which an object is initialized with user_inputs as properties
 
 
-##### METHODS
+##### Methods
 - Main: initiates program
 - run_trials: Iterates through num_trials. Candidate for multiprocessing refactor.
 - plot_results: Display results using MatPlotLib
