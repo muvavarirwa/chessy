@@ -38,9 +38,9 @@ presented in JSON/Python-dictionary format [refer games dictionary object below]
 instantiating specific players [b_Pawn_01, w_King, b_K1 etc)
 
 
-### ORGANIZATION
+#### ORGANIZATION
 
-#### CLASSES
+##### CLASSES
 
 - Game: Controller. Creates board. Invokes Team() to create teams+players. Updates and maintains game state (time_step)
 - Team: Instance per team. Invoked by Game(). Invokes Player_Template
@@ -49,7 +49,7 @@ instantiating specific players [b_Pawn_01, w_King, b_K1 etc)
 - UserInput: [arguably duplicative] class by which an object is initialized with user_inputs as properties
 
 
-### METHODS
+##### METHODS
 - Main: initiates program
 - run_trials: Iterates through num_trials. Candidate for multiprocessing refactor.
 - plot_results: Display results using MatPlotLib
