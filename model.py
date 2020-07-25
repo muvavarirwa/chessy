@@ -56,7 +56,7 @@ class CriticNetwork(nn.Module):
         super(CriticNetwork, self).__init__()
         self.seed = torch.manual_seed(args['seed'])
         #self.fc1 = nn.Linear(state_size+action_size, args['FC1_UNITS'])
-        self.fc1 = nn.Linear(state_size, args['FC1_UNITS'])
+        self.fc1 = nn.Linear(state_size+action_size, args['FC1_UNITS'])
         self.fc2 = nn.Linear(args['FC1_UNITS'], args['FC2_UNITS'])
         self.fc3 = nn.Linear(args['FC2_UNITS'], args['FC3_UNITS'])
         self.fc4 = nn.Linear(args['FC3_UNITS'], 1)
@@ -70,11 +70,7 @@ class CriticNetwork(nn.Module):
         
     def forward(self, state, action):
         """Build a network that maps state -> action values."""
-        state  = torch.transpose(state, 0,1)
-        action = torch.transpose(action,0,1)
-        state_action = torch.cat((state, action))
-        #state_action = torch.transpose(state_action,0,1)
-        x = F.relu(self.fc1(state_action))
+        x = F.relu(self.fc1(torch.cat((state, action),dim=1)))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         return self.fc4(x)
@@ -87,12 +83,12 @@ class MCritic():
     def __init__(self, state_size, action_size):
 
         self.state_size   = state_size
-        self.action_size  = action_size
+        self.action_size  = args['action_size']
         self.seed         = args['seed']
         self.device       = args['device']
 
-        self.network      = CriticNetwork(state_size, action_size).to(self.device)
-        self.target       = CriticNetwork(state_size, action_size).to(self.device)
+        self.network      = CriticNetwork(state_size, self.action_size).to(self.device)
+        self.target       = CriticNetwork(state_size, self.action_size).to(self.device)
         self.optimizer    = optim.Adam(self.network.parameters(), lr=args['LR_CRITIC'], weight_decay=args['WEIGHT_DECAY'])
         
         #Model takes too long to run --> load model weights from previous run (took > 24hours on my machine)
