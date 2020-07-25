@@ -29,6 +29,7 @@ import noise
 from noise import OUNoise
 from replaybuffer import ReplayBuffer
 from model import ActorNetwork, CriticNetwork, MCritic
+from args  import args
 
 
 class Game:
@@ -37,7 +38,7 @@ class Game:
     not_deadlocked = True
     global score_board
     
-    def __init__(self, game, args, size=8, sides=[], display_board_positions=True):
+    def __init__(self, game, size=8, sides=[], display_board_positions=True):
         self.game               = game
         self.size               = size
         self.board              = self.create_board()
@@ -59,10 +60,9 @@ class Game:
         self.feasible_moves_    = None 
         self.action_ids         = np.arange(0,len(sparse_action_dict.keys()),1)
         self.action_id_dict     = {y:x for x,y in zip(self.action_ids,sparse_action_dict.keys())}
-        self.args               = args
-        self.state              = self.args['initial_state']
-        self.state_size         = self.args['state_size']
-        self.action_size        = self.args['action_size']
+        self.state              = args['initial_state']
+        self.state_size         = args['state_size']
+        self.action_size        = args['action_size']
         self.seed               = args['seed']
         self.device             = args['device']
 

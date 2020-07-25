@@ -16,21 +16,22 @@ import noise
 from noise import OUNoise
 from replaybuffer import ReplayBuffer
 from model import ActorNetwork, CriticNetwork, MCritic
+from args  import args
 
 class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, agent_id, args):
+    def __init__(self, state_size, action_size, agent_id):
 
         self.state_size  = state_size
         self.action_size = action_size
         self.seed        = args['seed']
         self.device      = args['device']
-        self.args        = args
+        #self.args        = args
 
         # Q-Network
-        self.actor_network    = ActorNetwork(state_size, action_size, args).to(self.device)
-        self.actor_target     = ActorNetwork(state_size, action_size, args).to(self.device)
+        self.actor_network    = ActorNetwork(state_size, action_size).to(self.device)
+        self.actor_target     = ActorNetwork(state_size, action_size).to(self.device)
         self.actor_optimizer  = optim.Adam(self.actor_network.parameters(), lr=args['LR_ACTOR'])
         
         #Model takes too long to run --> load model weights from previous run (took > 24hours on my machine)
@@ -56,7 +57,7 @@ class Agent():
         
         self.memory.add(state, action, reward, next_state, done)
         
-        if len(self.memory) > self.args['BATCH_SIZE']:
+        if len(self.memory) > args['BATCH_SIZE']:
             experiences = self.memory.sample()
             self.train(experiences, mCritic)
             
@@ -101,7 +102,7 @@ class Agent():
             Q_targets_next = mCritic.target(next_states, actions_next)
 
             # Compute Q targets for current states (y_i)
-            Q_targets      = rewards + (self.args['GAMMA'] * Q_targets_next * (1 - dones))
+            Q_targets      = rewards + (args['GAMMA'] * Q_targets_next * (1 - dones))
         
         
         # Compute critic loss
@@ -128,8 +129,8 @@ class Agent():
 
         
         # ----------------------- update target networks ----------------------- #
-        self.soft_update(mCritic.network, mCritic.target, self.args['TAU'])
-        self.soft_update(self.actor_network,  self.actor_target,  self.args['TAU'])     
+        self.soft_update(mCritic.network, mCritic.target, args['TAU'])
+        self.soft_update(self.actor_network,  self.actor_target,  args['TAU'])     
         
 
     def soft_update(self, local_model, target_model, tau):
