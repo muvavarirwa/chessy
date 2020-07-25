@@ -58,6 +58,8 @@ class Game:
         self.policy_moves       = 0
         self.best_moves         = 0
         self.feasible_moves_    = None 
+        self.best_moves_sparse  = None
+        self.best_moves_verbose = None
         self.action_ids         = np.arange(0,len(sparse_action_dict.keys()),1)
         self.action_id_dict     = {y:x for x,y in zip(self.action_ids,sparse_action_dict.keys())}
         self.state              = args['initial_state']
@@ -155,6 +157,7 @@ class Game:
                             move_list.append((team.players[player], move, curr_pos,new_position))
                     else:
                         pass
+        
         return move_list
     # Returns the apriori conception of a best move (move most valuable players first) from the feasible_moves list
     # In this version of the game: Expert team (rating 10), always calls get_best_move for each play
@@ -173,20 +176,14 @@ class Game:
             #Testing whether policy_dict returns policy
             state = str(state).replace(" ","")
             
-            # I got really lazy here -- need to figure out why data is improperly formatted in the first place
-            #player, move, curr_pos, new_position =  policy_dict[state].split("(")[1:]
-            request = os.path.join('http://127.0.0.1:8000/policy',state)
-            response = requests.get(request)
-            player_func, move, curr_pos, new_position = eval(response.json())
+            player_func, move, curr_pos, new_position = self.best_actions_verbose[turn]
+            print('Eureka -- i chose the best policy!!')
             player = player_func()
             best_policy = (player, move, curr_pos, new_position)
             for player_, move_,curr_pos_, new_pos_ in moves:
                 if curr_pos_ == curr_pos:
                     best_policy = (player_, move_, curr_pos_, new_pos_)
                     self.policy_moves += 1
-                    #if not self.move_count in self.step_action_dict['policy_moves']:
-                    #    self.step_action_dict['policy_moves'][self.move_count] = 0
-                    #self.step_action_dict['policy_moves'][self.move_count] += 1
                     return best_policy
                 else:
                     pass         
@@ -196,10 +193,9 @@ class Game:
             moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
             random_move = random.choice(moves)
             self.random_moves += 1
-            #if not self.move_count in self.step_action_dict['random_moves']: 
-            #    self.step_action_dict[self.move_count] = 0
-            #    self.step_action_dict['random_moves'][self.move_count] += 1
-            #    #print("\nmove:\t{}\n".format(random_move))
+            print('Ah well -- i settled for a random policy!!')
+            print(random_moves[0],type(random_moves[0]))
+            print(random_move)
             return random_move
         
         # Returns a random selection from teh feasible_moves list
@@ -213,11 +209,7 @@ class Game:
         moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
         random_move = random.choice(moves)
         self.random_moves += 1
-
-        #print("\nmove:\t{}\n".format(random_move))
-        #if not self.move_count in self.step_action_dict['random_moves']:
-        #    self.step_action_dict['random_moves'][self.move_count] = 0
-        #    self.step_action_dict['random_moves'][self.move_count] += 1
+     
 
         return random_move
 
@@ -359,7 +351,7 @@ class Game:
 
             if self.team[turn].move_choice[self.move_count]:
                 try:
-                    player, move, curr_pos, new_position = self.get_best_move(turn,state)                    
+                    player, move, curr_pos, new_position = self.get_best_move(turn,state)   
                 except:            
                     player, move, curr_pos, new_position = self.get_random_move(turn)
             else:

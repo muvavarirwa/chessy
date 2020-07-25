@@ -20,7 +20,7 @@ args = {
     "FC3_UNITS":1024,
     "seed":0,
     "state_size":384,
-    "action_size":87,
+    "action_size":88,
     "action_size_binary":12,
     "num_agents":2,
     "device":torch.device("cuda:1" if torch.cuda.is_available() else "cuda:0"),
