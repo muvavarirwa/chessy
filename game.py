@@ -67,6 +67,7 @@ class Game:
         self.action_size        = args['action_size']
         self.seed               = args['seed']
         self.device             = args['device']
+        self.stats_loss         = 0
 
 
 
@@ -177,13 +178,14 @@ class Game:
             #state = str(state).replace(" ","")
             
             player, move, curr_pos, new_position = self.best_moves_verbose[turn]
-            print('Eureka -- i chose the best policy!!')
+            #print('Eureka -- i chose the best policy!!')
             #player = player_func()
             best_policy = (player, move, curr_pos, new_position)
             for player_, move_,curr_pos_, new_pos_ in moves:
                 if curr_pos_ == curr_pos:
                     best_policy = (player_, move_, curr_pos_, new_pos_)
                     self.policy_moves += 1
+                    #print("self.policy_moves:\t\t\t{}\n".format(self.policy_moves))
                     return best_policy
                 else:
                     pass         
@@ -195,7 +197,8 @@ class Game:
             self.random_moves += 1
             
             #print("==================== GET_RANDOM_MOVE ========================")
-            print('Ah well -- i settled for a random policy!!')
+            #print('Ah well -- i settled for a random policy!!')
+            #print("EXCPTIONS: self.random_moves:\t\t\t{}\n".format(self.random_moves))
             #print("================================================================\n")
             
             return random_move

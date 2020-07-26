@@ -51,6 +51,10 @@ class Agent():
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step      = 0
         
+        self.mCriticLoss = 0
+        
+        self.actorLoss   = 0
+        
     
     def step(self, state, action, reward, next_state, done, mCritic):
         # Save experience in replay memory
@@ -109,6 +113,7 @@ class Agent():
         Q_expected     = mCritic.network(states, actions)
         mCritic_loss    = F.mse_loss(Q_expected, Q_targets)
         
+        self.mCriticLoss = mCritic_loss
         
         # Minimize the loss
         mCritic.optimizer.zero_grad()
@@ -121,6 +126,7 @@ class Agent():
         actions_pred = self.actor_network(states)
         actor_loss = -mCritic.network(states, actions_pred).mean()
         
+        self.actorLoss = actor_loss
         
         # Minimize the loss
         self.actor_optimizer.zero_grad()
