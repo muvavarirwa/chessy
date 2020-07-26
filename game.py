@@ -162,7 +162,7 @@ class Game:
     # Returns the apriori conception of a best move (move most valuable players first) from the feasible_moves list
     # In this version of the game: Expert team (rating 10), always calls get_best_move for each play
 
-    def get_best_move(self, turn, state):
+    def get_best_move(self, turn):
         """Loops through feasible_moves and returns best moves -- based on value"""
         
         global best_moves
@@ -174,11 +174,11 @@ class Game:
         
         try:
             #Testing whether policy_dict returns policy
-            state = str(state).replace(" ","")
+            #state = str(state).replace(" ","")
             
-            player_func, move, curr_pos, new_position = self.best_actions_verbose[turn]
+            player, move, curr_pos, new_position = self.best_moves_verbose[turn]
             print('Eureka -- i chose the best policy!!')
-            player = player_func()
+            #player = player_func()
             best_policy = (player, move, curr_pos, new_position)
             for player_, move_,curr_pos_, new_pos_ in moves:
                 if curr_pos_ == curr_pos:
@@ -193,9 +193,11 @@ class Game:
             moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
             random_move = random.choice(moves)
             self.random_moves += 1
+            
+            #print("==================== GET_RANDOM_MOVE ========================")
             print('Ah well -- i settled for a random policy!!')
-            print(random_moves[0],type(random_moves[0]))
-            print(random_move)
+            #print("================================================================\n")
+            
             return random_move
         
         # Returns a random selection from teh feasible_moves list
@@ -209,7 +211,6 @@ class Game:
         moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
         random_move = random.choice(moves)
         self.random_moves += 1
-     
 
         return random_move
 
@@ -351,8 +352,8 @@ class Game:
 
             if self.team[turn].move_choice[self.move_count]:
                 try:
-                    player, move, curr_pos, new_position = self.get_best_move(turn,state)   
-                except:            
+                    player, move, curr_pos, new_position = self.get_best_move(turn)   
+                except: 
                     player, move, curr_pos, new_position = self.get_random_move(turn)
             else:
                 player, move, curr_pos, new_position = self.get_random_move(turn)
