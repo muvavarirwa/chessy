@@ -23,7 +23,7 @@ args = {
     "action_size":88,
     "action_size_binary":12,
     "num_agents":2,
-    "device":torch.device("cuda:1" if torch.cuda.is_available() else "cuda:0"),
+    "device":torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     'mcritic_path':'/home/ubuntu/chessy/checkpoint_mCritic.pth',
     'agent_p0_path':'/home/ubuntu/chessy/checkpoint_p0.pth',
     'agent_p1_path':'/home/ubuntu/chessy/checkpoint_p1.pth',
