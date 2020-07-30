@@ -50,7 +50,7 @@ class Game:
         self.states             = [] 
         self.last_action        = ""
         self.last_action_sparse = None
-        self.last_reward        = None
+        self.last_reward        = [0,0]
         self.wins               = 0
         self.losses             = 0
         self.draws              = 0
@@ -74,20 +74,20 @@ class Game:
     def __str__(self):
         os.system('clear')
 
-    def print_board():
-        col = 0
-        print("\n", "==" * 30)
-        
-        for row_col, player in self.board.items():
-            if col % 8 == 0 and col > 0:
-                print(" ")
-                print(" ")
-            if self.board[row_col] == None:
-                print("----", end="\t")
-            else:
-                print(self.board[row_col], end="\t")
-                col += 1    
-                print_board()
+        def print_board():
+            col = 0
+            print("\n", "==" * 30)
+
+            for row_col, player in self.board.items():
+                if col % 8 == 0 and col > 0:
+                    print(" ")
+                    print(" ")
+                if self.board[row_col] == None:
+                    print("----", end="\t")
+                else:
+                    print(self.board[row_col], end="\t")
+                    col += 1    
+        print_board()
 
     def __repr__(self):
         return 'Game({},{},({},{}))'.format(self.game, self.size, [("Team(" + str(i) + ")")for i in range(len(self.team))], self.score_board)
@@ -264,7 +264,7 @@ class Game:
         t = time.localtime()
         timestamp = time.strftime('%b_%d_%Y_%H%M', t)
         
-        HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(user_input.num_trials) + "_trials_" + str(user_input.num_sides) + "_sides_" + str(timestamp))
+        #HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(user_input.num_trials) + "_trials_" + str(user_input.num_sides) + "_sides_" + str(timestamp))
         
         turn = self.move_count % len(self.sides)
 
@@ -310,27 +310,26 @@ class Game:
                 
                 if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
                     
-                    
                     if "w__K" not in self.team[0].players:
-                        
-                        value   = -1
-                        #summary_dict['losses'] += 1
-                        self.last_reward = -1
-                        
+                        self.last_reward[0] = -args['TAKE_KING_REWARD']
+                        self.last_reward[1] =  args['TAKE_KING_REWARD']
                     elif "b__K" not in self.team[1].players:
-                        
-                        value   = 1
-                        #summary_dict['wins'] += 1
-                        self.last_reward = 1 
+                        self.last_reward[0] =  args['TAKE_KING_REWARD']
+                        self.last_reward[1] = -args['TAKE_KING_REWARD']
+                    elif self.team[0].Points > self.team[1].Points:
+                        self.last_reward[0] = args['MORE_POINTS_REWARD']
+                        self.last_reward[1] = -args['MORE_POINTS_REWARD']
+                    elif self.team[0].Points < self.team[1].Points:
+                        self.last_reward[0] = -args['MORE_POINTS_REWARD']
+                        self.last_reward[1] = args['MORE_POINTS_REWARD']
                     else:
-                        
-                        value   = 0
-                        #summary_dict['draws'] += 1
-                        self.last_reward = 0
+                        self.last_reward[0] = args['EQUAL_POINTS_REWARD']
+                        self.last_reward[1] = args['EQUAL_POINTS_REWARD']
+
                     
                 state_action = self.last_action.split("\t")
                 
-                state_action[-5] = str(value)            
+                state_action[-5] = str(self.last_reward[0])            
                 
                 state_action[-2] = str(0)
                 
@@ -340,7 +339,7 @@ class Game:
                 
                 self.horizon += state_action
                 
-            with open(HISTORY_FILE, "a") as history_file:
+            with open(args['HISTORY_FILE'], "a") as history_file:
                 horizon = str(self.horizon)
                 history_file.write(horizon)
                 history_file.write("\n")
@@ -385,7 +384,7 @@ class Game:
             self.horizon += state_action
             self.last_action = state_action
             self.last_action_sparse = action_sparse
-            self.last_reward = -1
+            #self.last_reward = -0.01
             self.states.append(state)    
             self.board[curr_pos] = None
 
@@ -399,6 +398,9 @@ class Game:
             if self.display_board_positions:
                 self.__str__()
             self.move_count += 1
+            
+            self.last_reward[0] = args['STEP_REWARD']
+            self.last_reward[1] = args['STEP_REWARD']
             
             result = (self.state, self.last_reward, self.not_deadlocked, (self.team[0].Points, self.team[1].Points))
             
