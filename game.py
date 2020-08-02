@@ -50,7 +50,7 @@ class Game:
         self.states             = [] 
         self.last_action        = ""
         self.last_action_sparse = None
-        self.last_reward        = None
+        self.last_reward        = [0,0]
         self.wins               = 0
         self.losses             = 0
         self.draws              = 0
@@ -67,26 +67,27 @@ class Game:
         self.action_size        = args['action_size']
         self.seed               = args['seed']
         self.device             = args['device']
+        self.stats_loss         = 0
 
 
 
     def __str__(self):
         os.system('clear')
 
-    def print_board():
-        col = 0
-        print("\n", "==" * 30)
-        
-        for row_col, player in self.board.items():
-            if col % 8 == 0 and col > 0:
-                print(" ")
-                print(" ")
-            if self.board[row_col] == None:
-                print("----", end="\t")
-            else:
-                print(self.board[row_col], end="\t")
-                col += 1    
-                print_board()
+        def print_board():
+            col = 0
+            print("\n", "==" * 30)
+
+            for row_col, player in self.board.items():
+                if col % 8 == 0 and col > 0:
+                    print(" ")
+                    print(" ")
+                if self.board[row_col] == None:
+                    print("----", end="\t")
+                else:
+                    print(self.board[row_col], end="\t")
+                    col += 1    
+        print_board()
 
     def __repr__(self):
         return 'Game({},{},({},{}))'.format(self.game, self.size, [("Team(" + str(i) + ")")for i in range(len(self.team))], self.score_board)
@@ -162,7 +163,7 @@ class Game:
     # Returns the apriori conception of a best move (move most valuable players first) from the feasible_moves list
     # In this version of the game: Expert team (rating 10), always calls get_best_move for each play
 
-    def get_best_move(self, turn, state):
+    def get_best_move(self, turn):
         """Loops through feasible_moves and returns best moves -- based on value"""
         
         global best_moves
@@ -174,16 +175,17 @@ class Game:
         
         try:
             #Testing whether policy_dict returns policy
-            state = str(state).replace(" ","")
+            #state = str(state).replace(" ","")
             
-            player_func, move, curr_pos, new_position = self.best_actions_verbose[turn]
-            print('Eureka -- i chose the best policy!!')
-            player = player_func()
+            player, move, curr_pos, new_position = self.best_moves_verbose[turn]
+            #print('Eureka -- i chose the best policy!!')
+            #player = player_func()
             best_policy = (player, move, curr_pos, new_position)
             for player_, move_,curr_pos_, new_pos_ in moves:
                 if curr_pos_ == curr_pos:
                     best_policy = (player_, move_, curr_pos_, new_pos_)
                     self.policy_moves += 1
+                    #print("self.policy_moves:\t\t\t{}\n".format(self.policy_moves))
                     return best_policy
                 else:
                     pass         
@@ -193,9 +195,12 @@ class Game:
             moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
             random_move = random.choice(moves)
             self.random_moves += 1
-            print('Ah well -- i settled for a random policy!!')
-            print(random_moves[0],type(random_moves[0]))
-            print(random_move)
+            
+            #print("==================== GET_RANDOM_MOVE ========================")
+            #print('Ah well -- i settled for a random policy!!')
+            #print("EXCPTIONS: self.random_moves:\t\t\t{}\n".format(self.random_moves))
+            #print("================================================================\n")
+            
             return random_move
         
         # Returns a random selection from teh feasible_moves list
@@ -209,7 +214,6 @@ class Game:
         moves = list(set([(player, move, curr_pos, new_position) for player, move, curr_pos, new_position in self.team[turn].feasible_moves]))
         random_move = random.choice(moves)
         self.random_moves += 1
-     
 
         return random_move
 
@@ -260,7 +264,7 @@ class Game:
         t = time.localtime()
         timestamp = time.strftime('%b_%d_%Y_%H%M', t)
         
-        HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(user_input.num_trials) + "_trials_" + str(user_input.num_sides) + "_sides_" + str(timestamp))
+        #HISTORY_FILE = ("/data_data/reinforcement_learning/results/history_file_" + str(user_input.num_trials) + "_trials_" + str(user_input.num_sides) + "_sides_" + str(timestamp))
         
         turn = self.move_count % len(self.sides)
 
@@ -306,27 +310,31 @@ class Game:
                 
                 if len(self.team[turn].feasible_moves) == 0 or "w__K" not in self.team[0].players or "b__K" not in self.team[1].players:
                     
-                    
                     if "w__K" not in self.team[0].players:
-                        
-                        value   = -1
-                        #summary_dict['losses'] += 1
-                        self.last_reward = -1
-                        
+                        self.last_reward[0] = -args['TAKE_KING_REWARD']
+                        self.last_reward[1] =  args['TAKE_KING_REWARD']
+                        args['WINS_DRAWS_LOSSES'][2] += 1
                     elif "b__K" not in self.team[1].players:
-                        
-                        value   = 1
-                        #summary_dict['wins'] += 1
-                        self.last_reward = 1 
+                        self.last_reward[0] =  args['TAKE_KING_REWARD']
+                        self.last_reward[1] = -args['TAKE_KING_REWARD']
+                        args['WINS_DRAWS_LOSSES'][0] += 1
+                    elif self.team[0].Points > self.team[1].Points:
+                        self.last_reward[0] = args['MORE_POINTS_REWARD']
+                        self.last_reward[1] = -args['MORE_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][0] += 1
+                    elif self.team[0].Points < self.team[1].Points:
+                        self.last_reward[0] = -args['MORE_POINTS_REWARD']
+                        self.last_reward[1] = args['MORE_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][2] += 1
                     else:
-                        
-                        value   = 0
-                        #summary_dict['draws'] += 1
-                        self.last_reward = 0
+                        self.last_reward[0] = args['EQUAL_POINTS_REWARD']
+                        self.last_reward[1] = args['EQUAL_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][1] += 1
+
                     
                 state_action = self.last_action.split("\t")
                 
-                state_action[-5] = str(value)            
+                state_action[-5] = str(self.last_reward[0])            
                 
                 state_action[-2] = str(0)
                 
@@ -336,7 +344,7 @@ class Game:
                 
                 self.horizon += state_action
                 
-            with open(HISTORY_FILE, "a") as history_file:
+            with open(args['HISTORY_FILE'], "a") as history_file:
                 horizon = str(self.horizon)
                 history_file.write(horizon)
                 history_file.write("\n")
@@ -351,8 +359,8 @@ class Game:
 
             if self.team[turn].move_choice[self.move_count]:
                 try:
-                    player, move, curr_pos, new_position = self.get_best_move(turn,state)   
-                except:            
+                    player, move, curr_pos, new_position = self.get_best_move(turn)   
+                except: 
                     player, move, curr_pos, new_position = self.get_random_move(turn)
             else:
                 player, move, curr_pos, new_position = self.get_random_move(turn)
@@ -381,7 +389,7 @@ class Game:
             self.horizon += state_action
             self.last_action = state_action
             self.last_action_sparse = action_sparse
-            self.last_reward = -1
+            #self.last_reward = -0.01
             self.states.append(state)    
             self.board[curr_pos] = None
 
@@ -395,6 +403,9 @@ class Game:
             if self.display_board_positions:
                 self.__str__()
             self.move_count += 1
+            
+            self.last_reward[0] = args['STEP_REWARD']
+            self.last_reward[1] = args['STEP_REWARD']
             
             result = (self.state, self.last_reward, self.not_deadlocked, (self.team[0].Points, self.team[1].Points))
             

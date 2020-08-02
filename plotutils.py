@@ -1,11 +1,18 @@
 
-def plot_results(user_input):
+def plot_results(user_input, scores):
   """ Plots results from num_trials"""
 
   team_scores = []
   min_score = 99999999
   max_score = 0
 
+  score_board = []
+  
+  #Refactor later...
+  for i in range(user_input.num_sides):
+        score_board.append([(x[0],x[i+1]) for x in scores])
+        
+  #Refactor later...     
   for j in range(user_input.num_sides):
     team_scores.append([team_points for cycle, team_points in score_board[j]])
     plot.hist(
@@ -28,6 +35,7 @@ def plot_results(user_input):
     text_x_pos = min_score
     text_y_pos = 2 * y_spacing
 
+  #Refactor later...
   def create_plot():
     for j in range(user_input.num_sides):
       rating_string = user_input.teams[j]["team_name"] + "_rating: " + str(
@@ -67,6 +75,8 @@ def plot_results(user_input):
       color=user_input.teams[0]["color"])
     plot.tight_layout()
 
+  #Refactor later...
   create_plot()
 
+  #Refactor later...
   plot.show()

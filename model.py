@@ -92,5 +92,5 @@ class MCritic():
         self.optimizer    = optim.Adam(self.network.parameters(), lr=args['LR_CRITIC'], weight_decay=args['WEIGHT_DECAY'])
         
         #Model takes too long to run --> load model weights from previous run (took > 24hours on my machine)
-        #self.network.load_state_dict(torch.load(args['mcritic_path']), strict=False)
-        #self.target.load_state_dict(torch.load(args['mcritic_path']), strict=False)
+        self.network.load_state_dict(torch.load(args['mcritic_path']), strict=False)
+        self.target.load_state_dict(torch.load(args['mcritic_path']), strict=False)
