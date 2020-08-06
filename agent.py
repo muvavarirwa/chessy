@@ -120,7 +120,11 @@ class Agent():
         Q_expected         = mCritic.network(states, actions)
         mCritic_loss       = F.mse_loss(Q_expected, Q_targets)
         
+<<<<<<< HEAD
         self.mCriticLoss   = mCritic_loss
+=======
+        self.mCriticLoss = mCritic_loss
+>>>>>>> 3450028ebf685af928af531bdbd39c78d6102171
         
         # Minimize the loss
         mCritic.optimizer.zero_grad()
