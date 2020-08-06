@@ -148,11 +148,11 @@ class Game:
                             if self.board[new_position] is None:
                                 move_list.append((team.players[player], move, curr_pos,new_position))
                         
-                        elif str(self.board[new_position][0]).lower() != str(team.players[player].board_name[0]).lower():
-                            move_list.append((team.players[player], move, curr_pos,new_position))
-                        
-                        else:
-                            pass
+                            elif str(self.board[new_position][0]).lower() != str(team.players[player].board_name[0]).lower():
+                                move_list.append((team.players[player], move, curr_pos,new_position))
+
+                            else:
+                                pass
                     elif team.strategy == "cooperative":
                         if self.board[new_position] is None:
                             move_list.append((team.players[player], move, curr_pos,new_position))
