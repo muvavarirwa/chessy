@@ -148,11 +148,11 @@ class Game:
                             if self.board[new_position] is None:
                                 move_list.append((team.players[player], move, curr_pos,new_position))
                         
-                        elif str(self.board[new_position][0]).lower() != str(team.players[player].board_name[0]).lower():
-                            move_list.append((team.players[player], move, curr_pos,new_position))
-                        
-                        else:
-                            pass
+                            elif str(self.board[new_position][0]).lower() != str(team.players[player].board_name[0]).lower():
+                                move_list.append((team.players[player], move, curr_pos,new_position))
+
+                            else:
+                                pass
                     elif team.strategy == "cooperative":
                         if self.board[new_position] is None:
                             move_list.append((team.players[player], move, curr_pos,new_position))
@@ -313,18 +313,23 @@ class Game:
                     if "w__K" not in self.team[0].players:
                         self.last_reward[0] = -args['TAKE_KING_REWARD']
                         self.last_reward[1] =  args['TAKE_KING_REWARD']
+                        args['WINS_DRAWS_LOSSES'][2] += 1
                     elif "b__K" not in self.team[1].players:
                         self.last_reward[0] =  args['TAKE_KING_REWARD']
                         self.last_reward[1] = -args['TAKE_KING_REWARD']
+                        args['WINS_DRAWS_LOSSES'][0] += 1
                     elif self.team[0].Points > self.team[1].Points:
                         self.last_reward[0] = args['MORE_POINTS_REWARD']
                         self.last_reward[1] = -args['MORE_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][0] += 1
                     elif self.team[0].Points < self.team[1].Points:
                         self.last_reward[0] = -args['MORE_POINTS_REWARD']
                         self.last_reward[1] = args['MORE_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][2] += 1
                     else:
                         self.last_reward[0] = args['EQUAL_POINTS_REWARD']
                         self.last_reward[1] = args['EQUAL_POINTS_REWARD']
+                        args['WINS_DRAWS_LOSSES'][1] += 1
 
                     
                 state_action = self.last_action.split("\t")

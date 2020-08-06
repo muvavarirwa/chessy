@@ -15,6 +15,7 @@ import numpy as np
 import noise
 from noise import OUNoise
 from replaybuffer import ReplayBuffer
+#from model_cnn import ActorNetwork, CriticNetwork, MCritic
 from model import ActorNetwork, CriticNetwork, MCritic
 from args  import args
 
@@ -71,7 +72,10 @@ class Agent():
         with torch.no_grad():
                 
             self.actor_network.eval()
-                
+            
+            # PUT CONDITIONAL CHECK -> if CNN reshape, ELSE...dont
+            #input_state = torch.from_numpy(current_state).float().reshape(args['reshape_size']).unsqueeze(0).unsqueeze(0).to(self.device)
+            
             input_state = torch.from_numpy(current_state).float().to(self.device)
                 
             with torch.no_grad():
@@ -103,6 +107,9 @@ class Agent():
         with torch.no_grad():
             # Get predicted next-state actions and Q values from target models
             actions_next   = self.actor_target(next_states)
+            
+            #PUT CONDITIONAL CHECK: if CNN reshape ELSE..Dont...
+            #Q_targets_next = mCritic.target(next_states, actions_next[np.newaxis, :])
             Q_targets_next = mCritic.target(next_states, actions_next)
 
             # Compute Q targets for current states (y_i)
@@ -110,20 +117,25 @@ class Agent():
         
         
         # Compute critic loss
-        Q_expected     = mCritic.network(states, actions)
-        mCritic_loss    = F.mse_loss(Q_expected, Q_targets)
+        Q_expected         = mCritic.network(states, actions)
+        mCritic_loss       = F.mse_loss(Q_expected, Q_targets)
         
-        self.mCriticLoss = mCritic_loss
+        self.mCriticLoss   = mCritic_loss
         
         # Minimize the loss
         mCritic.optimizer.zero_grad()
         mCritic_loss.backward()
         mCritic.optimizer.step()
-
         
         # ---------------------------- update actor ---------------------------- #
+
         # Compute actor loss
+        #PUT CONDITIONAL CHECK: if CNN reshape ELSE..Dont...
+        #actions_pred = self.actor_network(states.reshape(args['reshape_size']).unsqueeze(0).unsqueeze(0))
         actions_pred = self.actor_network(states)
+        
+        #PUT CONDITIONAL CHECK: if CNN reshape ELSE..Dont...
+        #actor_loss = -mCritic.network(states, actions_pred[np.newaxis, :]).mean()
         actor_loss = -mCritic.network(states, actions_pred).mean()
         
         self.actorLoss = actor_loss
