@@ -52,7 +52,7 @@ class ActorNetwork(nn.Module):
 class CriticNetwork(nn.Module):
     """Critic (Policy) Model."""
 
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_action_size):
 
         super(CriticNetwork, self).__init__()
         self.seed = torch.manual_seed(args['seed'])
@@ -76,21 +76,46 @@ class CriticNetwork(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         return self.fc4(x)
+    
+class CriticNetwork2(nn.Module):
+    """Critic (Policy) Model."""
 
+    def __init__(self, state_action_size):
+
+        super(CriticNetwork, self).__init__()
+        self.seed = torch.manual_seed(args['seed'])
+        self.fc1 = nn.Linear(state_action_size, args['FC1_UNITS'])
+        self.fc2 = nn.Linear(args['FC1_UNITS'], args['FC2_UNITS'])
+        self.fc3 = nn.Linear(args['FC2_UNITS'], args['FC3_UNITS'])
+        self.fc4 = nn.Linear(args['FC3_UNITS'], 1)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
+        self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
+        self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+        
+    def forward(self, state_action):
+        """Build a network that maps state -> action values."""
+
+        x = F.relu(self.fc1(state_action))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        return self.fc4(x)
     
     
 class MCritic():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_action_size):
 
-        self.state_size   = state_size
-        self.action_size  = args['action_size']
+        self.state_action_size   = state_action_size
         self.seed         = args['seed']
         self.device       = args['device']
 
-        self.network      = CriticNetwork(state_size, self.action_size).to(self.device)
-        self.target       = CriticNetwork(state_size, self.action_size).to(self.device)
+        self.network      = CriticNetwork2(state_action_size).to(self.device)
+        self.target       = CriticNetwork2(state_action_size).to(self.device)
         self.optimizer    = optim.Adam(self.network.parameters(), lr=args['LR_CRITIC'], weight_decay=args['WEIGHT_DECAY'])
         
         #Model takes too long to run --> load model weights from previous run (took > 24hours on my machine)

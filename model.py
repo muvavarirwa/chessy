@@ -74,7 +74,7 @@ class CriticNetwork(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         return self.fc4(x)
-
+   
     
     
 class MCritic():
@@ -82,15 +82,14 @@ class MCritic():
 
     def __init__(self, state_size, action_size):
 
-        self.state_size   = state_size
-        self.action_size  = args['action_size']
+        #self.state_action_size   = state_action_size
         self.seed         = args['seed']
         self.device       = args['device']
 
-        self.network      = CriticNetwork(state_size, self.action_size).to(self.device)
-        self.target       = CriticNetwork(state_size, self.action_size).to(self.device)
+        self.network      = CriticNetwork(state_size, action_size).to(self.device)
+        self.target       = CriticNetwork(state_size, action_size).to(self.device)
         self.optimizer    = optim.Adam(self.network.parameters(), lr=args['LR_CRITIC'], weight_decay=args['WEIGHT_DECAY'])
         
         #Model takes too long to run --> load model weights from previous run (took > 24hours on my machine)
-        self.network.load_state_dict(torch.load(args['mcritic_path']), strict=False)
-        self.target.load_state_dict(torch.load(args['mcritic_path']), strict=False)
+        #self.network.load_state_dict(torch.load(args['mcritic_path']), strict=False)
+        #self.target.load_state_dict(torch.load(args['mcritic_path']), strict=False)
