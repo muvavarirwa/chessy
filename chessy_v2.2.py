@@ -194,7 +194,7 @@ def Rook():
 import requests
 
 def getCycle():
-    request = 'http://127.0.0.1:8001/policy/cycle'
+    request = 'http://127.0.0.1:8000/policy/cycle'
     response = requests.get(request)
     return int(response.json())
 
