@@ -10,7 +10,6 @@ from collections import defaultdict
 import matplotlib
 import requests
 import datetime
-import multiprocessing as mp
 
 from utils.userInput import userInput
 from models import games
