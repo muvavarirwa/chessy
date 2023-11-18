@@ -56,10 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-mark hold ${NV_LIBCUBLAS_PACKAGE_NAME} ${NV_LIBNCCL_PACKAGE_NAME}
 
 # Add entrypoint items
-COPY entrypoint.d/ /opt/nvidia/entrypoint.d/
-COPY nvidia_entrypoint.sh /opt/nvidia/
-ENV NVIDIA_PRODUCT_NAME="CUDA"
-ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
+#COPY entrypoint.d/ /opt/nvidia/entrypoint.d/
+#COPY nvidia_entrypoint.sh /opt/nvidia/
+#ENV NVIDIA_PRODUCT_NAME="CUDA"
+#ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
    
 
    # Set the working directory in the container
@@ -67,10 +67,6 @@ ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
 
    # Copy the local code to the container
    COPY . .
-
-   # Install FastAPI and Uvicorn
-   RUN pip3 install 
-   # Expose the port the app runs on
 
    # Command to run the application
    CMD ["utils/uvicorn/policy_id/uvicorn", "main:app", "--host 0.0.0.0", "--port 9000"]
